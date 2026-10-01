@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cordeiro Preparações - Core OS v3.0 Ultra</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;600;700&family=Syncopate:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+      /* ==========================================================================
+         NEURAL HUD CORE OS v3.0 - MAXIMUM OVERDRIVE EDITION
+         ========================================================================== */
+      :root {
+        --neon-green: #00ffaa;
+        --neon-green-glow: rgba(0, 255, 170, 0.45);
+        --neon-cyan: #00f0ff;
+        --neon-cyan-glow: rgba(0, 240, 255, 0.4);
+        --danger-plasma: #ff0055;
+        --danger-glow: rgba(255, 0, 85, 0.45);
+        
+        --bg-space: #020509;
+        --hud-surface: rgba(5, 14, 26, 0.88);
+        --hud-border: rgba(0, 240, 255, 0.28);
+        --input-surface: rgba(0, 240, 255, 0.04);
+
+        --font-hud: 'Orbitron', -apple-system, sans-serif;
+        --font-title: 'Syncopate', sans-serif;
+        --font-main: 'Plus Jakarta Sans', sans-serif;
+
+        --mouse-x: 50%;
+        --mouse-y: 50%;
+
+        --transition-sharp: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+
+      ::selection {
+        background: var(--neon-cyan);
+        color: var(--bg-space);
+      }
+
+      body {
+        margin: 0;
+        padding: 30px 20px;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--bg-space);
+        background-image: 
+          radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(0, 240, 255, 0.12) 0%, transparent 40%),
+          radial-gradient(circle at 50% 50%, rgba(0, 255, 170, 0.05) 0%, transparent 70%),
+          linear-gradient(rgba(0, 255, 170, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 255, 170, 0.03) 1px, transparent 1px);
+        background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px;
+        font-family: var(--font-main);
+        color: #fff;
+        overflow-x: hidden;
+      }
+
+      /* Scanline FX */
+      .scanline {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 4px;
+        background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+        opacity: 0.75;
+        animation: scan 5s linear infinite;
+        pointer-events: none;
+        z-index: 99;
+        filter: drop-shadow(0 0 8px var(--neon-cyan));
+      }
+
+      @keyframes scan {
+        0% { top: -2%; }
+        100% { top: 102%; }
+      }
+
+      .hud-container {
+        width: 100%;
+        max-width: 1080px;
+        margin: 0 auto;
+      }
+
+      .hud-header {
+        text-align: center;
+        margin-bottom: 35px;
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--font-hud);
+        font-size: 0.75rem;
+        letter-spacing: 0.22em;
+        color: var(--neon-green);
+        background: rgba(0, 255, 170, 0.08);
+        border: 1px solid var(--neon-green);
+        padding: 6px 18px;
+        border-radius: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 0 20px var(--neon-green-glow);
+        user-select: none;
+      }
+
+      .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--neon-green);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--neon-green);
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.25; transform: scale(0.7); }
+      }
+
+      .title {
+        font-family: var(--font-title);
+        font-size: clamp(1.8rem, 4.5vw, 2.8rem);
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        margin: 0;
+        background: linear-gradient(180deg, #ffffff 15%, var(--neon-cyan) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 20px var(--neon-cyan-glow));
+      }
+
+      .subtitle {
+        font-family: var(--font-hud);
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.6);
+        letter-spacing: 0.15em;
+        margin-top: 8px;
+      }
+
+      .hud-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.25fr;
+        gap: 30px;
+      }
+
+      @media (max-width: 880px) {
+        .hud-grid { grid-template-columns: 1fr; }
+      }
+
+      /* Card com Reatividade Holográfica */
+      .hud-card {
+        background: var(--hud-surface);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--hud-border);
+        padding: 32px;
+        position: relative;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+        border-radius: 6px;
+        transition: var(--transition-sharp);
+        overflow: hidden;
+      }
+
+      .hud-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: radial-gradient(400px circle at var(--mouse-x) var(--mouse-y), rgba(0, 240, 255, 0.08), transparent 80%);
+        pointer-events: none;
+      }
+
+      .hud-card:hover {
+        border-color: rgba(0, 240, 255, 0.55);
+        box-shadow: 0 20px 60px rgba(0, 240, 255, 0.18);
+      }
+
+      .card-corner {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border-color: var(--neon-cyan);
+        border-style: solid;
+        pointer-events: none;
+      }
+
+      .corner-tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+      .corner-br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+      .card-title {
+        font-family: var(--font-hud);
+        font-size: 0.85rem;
+        letter-spacing: 0.18em;
+        color: var(--neon-cyan);
+        margin-top: 0;
+        margin-bottom: 24px;
+        padding-bottom: 10px;
+        border-bottom: 1px dashed rgba(0, 240, 255, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .input-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+
+      .input-row {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        gap: 14px;
+      }
+
+      label {
+        font-family: var(--font-hud);
+        font-size: 0.65rem;
+        letter-spacing: 0.12em;
+        color: rgba(255, 255, 255, 0.75);
+      }
+
+      .input-wrapper {
+        position: relative;
+      }
+
+      input {
+        width: 100%;
+        background: var(--input-surface);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #fff;
+        padding: 12px 14px;
+        font-family: var(--font-main);
+        font-size: 0.9rem;
+        outline: none;
+        transition: var(--transition-sharp);
+        border-radius: 4px;
+      }
+
+      input::placeholder {
+        color: rgba(255, 255, 255, 0.35);
+      }
+
+      input:focus {
+        background: rgba(0, 240, 255, 0.08);
+        border-color: var(--neon-cyan);
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
+      }
+
+      .input-focus-line {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 0;
+        height: 2px;
+        background: var(--neon-cyan);
+        transition: var(--transition-sharp);
+        box-shadow: 0 0 10px var(--neon-cyan);
+      }
+
+      input:focus + .input-focus-line {
+        width: 100%;
+        left: 0;
+      }
+
+      .btn-cyber {
+        width: 100%;
+        background: linear-gradient(135deg, var(--neon-green), #00b377);
+        border: none;
+        color: #001a10;
+        font-family: var(--font-hud);
+        font-weight: 700;
+        font-size: 0.85rem;
+        letter-spacing: 0.14em;
+        padding: 15px;
+        cursor: pointer;
+        clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        transition: var(--transition-sharp);
+        box-shadow: 0 0 20px var(--neon-green-glow);
+        margin-top: 10px;
+      }
+
+      .btn-cyber:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 35px rgba(0, 255, 170, 0.85);
+        background: linear-gradient(135deg, #42ffc3, var(--neon-green));
+      }
+
+      .btn-purge {
+        width: 100%;
+        background: transparent;
+        border: 1px dashed rgba(255, 255, 255, 0.25);
+        color: rgba(255, 255, 255, 0.6);
+        font-family: var(--font-hud);
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+        padding: 12px;
+        cursor: pointer;
+        margin-top: 24px;
+        transition: var(--transition-sharp);
+        border-radius: 4px;
+      }
+
+      .btn-purge:hover {
+        border-color: var(--danger-plasma);
+        color: var(--danger-plasma);
+        background: rgba(255, 0, 85, 0.12);
+        box-shadow: 0 0 22px rgba(255, 0, 85, 0.35);
+      }
+
+      .hud-display {
+        background: rgba(0, 240, 255, 0.04);
+        border: 1px solid var(--neon-cyan);
+        padding: 18px;
+        text-align: center;
+        margin-bottom: 22px;
+        box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.08);
+        border-radius: 4px;
+      }
+
+      .display-label {
+        font-family: var(--font-hud);
+        font-size: 0.65rem;
+        letter-spacing: 0.18em;
+        color: rgba(255, 255, 255, 0.7);
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .display-value {
+        font-family: var(--font-hud);
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--neon-cyan);
+        text-shadow: 0 0 18px var(--neon-cyan-glow);
+      }
+
+      .table-container {
+        overflow-x: auto;
+        max-height: 240px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 4px;
+      }
+
+      .table-container::-webkit-scrollbar {
+        width: 5px;
+      }
+      .table-container::-webkit-scrollbar-thumb {
+        background: var(--neon-cyan);
+        border-radius: 2px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th {
+        font-family: var(--font-hud);
+        font-size: 0.65rem;
+        letter-spacing: 0.12em;
+        color: var(--neon-green);
+        text-align: left;
+        padding: 12px;
+        background: rgba(0, 255, 170, 0.06);
+        border-bottom: 1px solid rgba(0, 255, 170, 0.25);
+        position: sticky;
+        top: 0;
+        backdrop-filter: blur(10px);
+      }
+
+      td {
+        padding: 12px;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.9);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        transition: var(--transition-sharp);
+      }
+
+      tr.row-entry {
+        animation: fadeInRow 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      @keyframes fadeInRow {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      tr:hover td {
+        background: rgba(0, 240, 255, 0.06);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 25px !important;
+        font-family: var(--font-hud);
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+        color: rgba(255, 255, 255, 0.35);
+      }
+
+      .btn-excluir {
+        background: rgba(255, 0, 85, 0.15);
+        color: var(--danger-plasma);
+        border: 1px solid var(--danger-plasma);
+        font-family: var(--font-hud);
+        font-size: 0.6rem;
+        padding: 5px 10px;
+        cursor: pointer;
+        transition: var(--transition-sharp);
+        border-radius: 2px;
+      }
+
+      .btn-excluir:hover {
+        background: var(--danger-plasma);
+        color: #fff;
+        box-shadow: 0 0 14px var(--danger-plasma);
+      }
+    </style>
+</head>
+<body>
+
+    <div class="scanline"></div>
+
+    <main class="hud-container">
+        <header class="hud-header">
+            <div class="status-badge"><span class="pulse-dot"></span> SYSTEM ONLINE</div>
+            <h1 class="title">CORDEIRO PREPARAÇÕES</h1>
+            <p class="subtitle">// MÓDULO DE CONTROLE DE ESTOQUE & PERFORMANCE</p>
+        </header>
+
+        <div class="hud-grid">
+            <section class="hud-card">
+                <div class="card-corner corner-tl"></div>
+                <div class="card-corner corner-br"></div>
+                
+                <h2 class="card-title">INSERÇÃO DE DADOS</h2>
+
+                <form id="form-produto">
+                    <div class="input-container">
+                        <label for="nome">ESPECIFICAÇÃO DO ITEM</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="nome" placeholder="Ex: Comando Bravo 320°" required autocomplete="off">
+                            <span class="input-focus-line"></span>
+                        </div>
+                    </div>
+
+                    <div class="input-row">
+                        <div class="input-container">
+                            <label for="preco">VALOR (R$)</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="preco" step="0.01" min="0" placeholder="0.00" required>
+                                <span class="input-focus-line"></span>
+                            </div>
+                        </div>
+
+                        <div class="input-container">
+                            <label for="quantidade">QTD</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="quantidade" min="1" placeholder="0" required>
+                                <span class="input-focus-line"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-adicionar" class="btn-cyber">REGISTRAR ITEM</button>
+                </form>
+            </section>
+
+            <section class="hud-card">
+                <div class="card-corner corner-tl"></div>
+                <div class="card-corner corner-br"></div>
+
+                <div id="total-estoque" class="hud-display">
+                    <span class="display-label">VALOR TOTAL DO INVENTÁRIO</span>
+                    <div class="display-value">R$ <span id="valor-total">0,00</span></div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ITEM</th>
+                                <th>PREÇO</th>
+                                <th>QTD</th>
+                                <th>AÇÃO</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-corpo">
+                            <!-- Injetado dinamicamente via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <button type="button" id="limpar-tabela" class="btn-purge">PURGAR BASE DE DADOS</button>
+            </section>
+        </div>
+    </main>
+
+    <!-- MOTOR CORE HIGH-PERFORMANCE JS -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        // --- SEGUIMENTO DO MOUSE PARA ILUMINAÇÃO HOLOGRÁFICA ---
+        window.addEventListener('mousemove', (e) => {
+          document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`);
+          document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
+        });
+
+        // --- MULTI-TAB BROADCAST SYNC (Sincronização entre Abas) ---
+        const syncChannel = new BroadcastChannel('cordeiro_stock_sync');
+
+        // --- AUDIO ENGINE PRO (Sintetizador de Frequências) ---
+        const AudioFX = {
+          ctx: null,
+          init() {
+            if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+          },
+          play(freq, type = 'sine', duration = 0.08, gainVal = 0.04) {
+            try {
+              this.init();
+              const osc = this.ctx.createOscillator();
+              const gain = this.ctx.createGain();
+              osc.type = type;
+              osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+              gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+              osc.connect(gain);
+              gain.connect(this.ctx.destination);
+              osc.start();
+              osc.stop(this.ctx.currentTime + duration);
+            } catch (e) {}
+          }
+        };
+
+        // --- GESTÃO DE ESTADO REATIVO ---
+        const AppState = new Proxy({
+          produtos: JSON.parse(localStorage.getItem('cordeiro_inventory') || '[]')
+        }, {
+          set(target, prop, val) {
+            target[prop] = val;
+            if (prop === 'produtos') {
+              localStorage.setItem('cordeiro_inventory', JSON.stringify(val));
+              syncChannel.postMessage({ type: 'UPDATE_STATE' });
+              render();
+            }
+            return true;
+          }
+        });
+
+        syncChannel.onmessage = (e) => {
+          if (e.data.type === 'UPDATE_STATE') {
+            AppState.produtos = JSON.parse(localStorage.getItem('cordeiro_inventory') || '[]');
+          }
+        };
+
+        // --- ELEMENTOS DO DOM ---
+        const form = document.getElementById('form-produto');
+        const inputNome = document.getElementById('nome');
+        const inputPreco = document.getElementById('preco');
+        const inputQuantidade = document.getElementById('quantidade');
+        const tabelaCorpo = document.getElementById('tabela-corpo');
+        const valorTotalDisplay = document.getElementById('valor-total');
+        const btnLimpar = document.getElementById('limpar-tabela');
+
+        const formatBRL = (num) => num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        const sanitize = (str) => {
+          const div = document.createElement('div');
+          div.textContent = str;
+          return div.innerHTML;
+        };
+
+        // --- RENDERIZAÇÃO DA TABELA ---
+        function render() {
+          tabelaCorpo.innerHTML = '';
+
+          if (AppState.produtos.length === 0) {
+            tabelaCorpo.innerHTML = `
+              <tr>
+                <td colspan="4" class="empty-state">// NENHUM ITEM REGISTRADO NO INVENTÁRIO</td>
+              </tr>
+            `;
+            valorTotalDisplay.textContent = '0,00';
+            return;
+          }
+
+          let acumulador = 0;
+
+          AppState.produtos.forEach((item, index) => {
+            acumulador += (item.preco * item.quantidade);
+
+            const tr = document.createElement('tr');
+            tr.className = 'row-entry';
+            tr.innerHTML = `
+              <td><strong>${sanitize(item.nome)}</strong></td>
+              <td>R$ ${formatBRL(item.preco)}</td>
+              <td>${item.quantidade}</td>
+              <td>
+                <button class="btn-excluir" data-index="${index}">EXCLUIR</button>
+              </td>
+            `;
+            tabelaCorpo.appendChild(tr);
+          });
+
+          valorTotalDisplay.textContent = formatBRL(acumulador);
+        }
+
+        // --- SUBMISSÃO DE DADOS ---
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+
+          const nome = inputNome.value.trim();
+          const preco = parseFloat(inputPreco.value);
+          const quantidade = parseInt(inputQuantidade.value, 10);
+
+          if (!nome || isNaN(preco) || isNaN(quantidade) || preco < 0 || quantidade <= 0) {
+            AudioFX.play(150, 'sawtooth', 0.2);
+            return;
+          }
+
+          AppState.produtos = [...AppState.produtos, { nome, preco, quantidade }];
+          
+          AudioFX.play(1200, 'triangle', 0.1);
+          form.reset();
+          inputNome.focus();
+        });
+
+        // --- REMOÇÃO INDIVIDUAL ---
+        tabelaCorpo.addEventListener('click', (e) => {
+          if (e.target.classList.contains('btn-excluir')) {
+            const index = parseInt(e.target.getAttribute('data-index'), 10);
+            AudioFX.play(350, 'sawtooth', 0.12);
+            
+            const arr = [...AppState.produtos];
+            arr.splice(index, 1);
+            AppState.produtos = arr;
+          }
+        });
+
+        // --- PURGA DE BANCO ---
+        btnLimpar.addEventListener('click', () => {
+          if (AppState.produtos.length === 0) return;
+
+          if (confirm('// ATENÇÃO: CONFIRMA A EXCLUSÃO DE TODOS OS REGISTROS DO SISTEMA?')) {
+            AudioFX.play(180, 'square', 0.3);
+            AppState.produtos = [];
+          }
+        });
+
+        // --- SOUND FEEDBACKS NOS INPUTS ---
+        document.querySelectorAll('input, button').forEach(elem => {
+          elem.addEventListener('focus', () => AudioFX.play(850, 'sine', 0.03));
+        });
+
+        // RENDER INICIAL
+        render();
+      });
+    </script>
+</body>
+</html>
